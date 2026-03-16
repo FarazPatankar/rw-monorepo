@@ -34,9 +34,9 @@ body::before {
   z-index: 0;
 }
 
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes pulse-dot {
@@ -44,15 +44,9 @@ body::before {
   50% { opacity: 0.4; }
 }
 
-@utility animate-fade-up {
-  animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+@utility animate-fade-in {
+  animation: fade-in 0.4s ease both;
 }
-
-@utility delay-1 { animation-delay: 0.06s; }
-@utility delay-2 { animation-delay: 0.13s; }
-@utility delay-3 { animation-delay: 0.21s; }
-@utility delay-4 { animation-delay: 0.29s; }
-@utility delay-5 { animation-delay: 0.37s; }
 
 @utility animate-pulse-dot {
   animation: pulse-dot 2s ease-in-out infinite;

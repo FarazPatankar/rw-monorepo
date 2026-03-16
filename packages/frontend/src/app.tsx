@@ -28,15 +28,15 @@ function SkeletonCard() {
   return (
     <div className="bg-[--color-card] border border-[--color-card-border] rounded-xl p-5 mb-3">
       <div className="flex items-center justify-between">
-        <Skeleton className="h-4 w-24" />
-        <Skeleton className="h-5 w-[5.5rem] rounded-full" />
+        <Skeleton className="h-[0.95rem] w-24" />
+        <Skeleton className="h-[1.15rem] w-[5.5rem] rounded-full" />
       </div>
-      <div className="mt-4 flex flex-col gap-2.5">
-        <div className="flex justify-between items-baseline">
+      <div className="mt-4 flex flex-col gap-1.5">
+        <div className="flex justify-between items-baseline py-0.5">
           <Skeleton className="h-3 w-16" />
           <Skeleton className="h-3 w-28" />
         </div>
-        <div className="flex justify-between items-baseline">
+        <div className="flex justify-between items-baseline py-0.5">
           <Skeleton className="h-3 w-20" />
           <Skeleton className="h-3 w-36" />
         </div>
@@ -185,7 +185,7 @@ function App() {
           {!loaded ? (
             <SkeletonCard />
           ) : (
-            <div className="animate-fade-up bg-[--color-card] border border-[--color-card-border] rounded-xl p-5 transition-all duration-300 hover:border-[--color-card-border-hover] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
+            <div className="animate-fade-in bg-[--color-card] border border-[--color-card-border] rounded-xl p-5 transition-all duration-300 hover:border-[--color-card-border-hover] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
               <div className="flex items-center justify-between">
                 <span className="font-body text-[0.95rem] font-semibold tracking-tight">
                   API Server
@@ -214,12 +214,8 @@ function App() {
             </>
           ) : (
             <>
-              <div className="animate-fade-up delay-1">
-                <StatusCard name="PostgreSQL" status={status?.postgres ?? null} />
-              </div>
-              <div className="animate-fade-up delay-2">
-                <StatusCard name="Redis" status={status?.redis ?? null} />
-              </div>
+              <StatusCard name="PostgreSQL" status={status?.postgres ?? null} />
+              <StatusCard name="Redis" status={status?.redis ?? null} />
             </>
           )}
         </div>
