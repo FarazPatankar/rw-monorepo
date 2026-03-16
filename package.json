@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "workspaces": ["packages/*"],
+  "dependencies": {
+    "bun-plugin-tailwind": "^0.1.2"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
