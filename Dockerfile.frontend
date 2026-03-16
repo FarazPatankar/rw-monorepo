@@ -2,7 +2,7 @@ FROM oven/bun:1 AS base
 WORKDIR /app
 
 # Install dependencies — copy all workspace package.jsons so lockfile is consistent
-COPY package.json bun.lock ./
+COPY package.json bun.lock bunfig.toml ./
 COPY packages/backend/package.json packages/backend/
 COPY packages/frontend/package.json packages/frontend/
 COPY packages/utils/package.json packages/utils/
@@ -11,8 +11,6 @@ RUN bun install --frozen-lockfile
 # Copy source
 COPY packages/frontend packages/frontend
 COPY packages/utils packages/utils
-
-RUN cd packages/frontend && bun run build:css
 
 EXPOSE 3000
 CMD ["bun", "packages/frontend/src/index.ts"]

@@ -3,15 +3,13 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build:css": "bunx tailwindcss -i src/styles.css -o src/output.css --minify",
-    "dev": "bun run build:css && bun --hot src/index.ts",
-    "start": "bun run build:css && bun src/index.ts",
+    "dev": "bun --hot src/index.ts",
+    "start": "bun src/index.ts",
     "test": "bun test"
   },
   "dependencies": {
     "@rw/utils": "workspace:*",
-    "@tailwindcss/postcss": "^4.2.1",
-    "postcss": "^8.5.8",
+    "bun-plugin-tailwind": "^0.1.2",
     "react": "^19",
     "react-dom": "^19",
     "tailwindcss": "^4.2.1"
