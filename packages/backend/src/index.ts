@@ -2,6 +2,42 @@ import { formatDate } from "@rw/utils";
 
 const port = Number(process.env.PORT) || 3001;
 
+const pgUrl = process.env.DATABASE_URL;
+const redisUrl = process.env.REDIS_URL;
+
+async function checkPostgres() {
+  if (!pgUrl) return { connected: false, error: "DATABASE_URL not set" };
+  try {
+    const sql = Bun.sql;
+    const [row] = await sql`SELECT version(), now() as server_time`;
+    return {
+      connected: true,
+      version: row.version.split(" ").slice(0, 2).join(" "),
+      serverTime: row.server_time,
+    };
+  } catch (e: any) {
+    return { connected: false, error: e.message };
+  }
+}
+
+async function checkRedis() {
+  if (!redisUrl) return { connected: false, error: "REDIS_URL not set" };
+  try {
+    const redis = new Bun.RedisClient(redisUrl);
+    await redis.set("rw:ping", `pong:${Date.now()}`);
+    const value = await redis.get("rw:ping");
+    const info = await redis.send("INFO", ["server"]);
+    const versionMatch = String(info).match(/redis_version:(\S+)/);
+    return {
+      connected: true,
+      version: versionMatch?.[1] ?? "unknown",
+      lastPing: value,
+    };
+  } catch (e: any) {
+    return { connected: false, error: e.message };
+  }
+}
+
 Bun.serve({
   port,
   routes: {
@@ -14,6 +50,14 @@ Bun.serve({
         date: formatDate(new Date()),
         timestamp: Date.now(),
       });
+    },
+
+    "/api/status": async () => {
+      const [postgres, redis] = await Promise.all([
+        checkPostgres(),
+        checkRedis(),
+      ]);
+      return Response.json({ postgres, redis });
     },
   },
 
