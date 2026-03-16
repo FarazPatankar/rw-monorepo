@@ -16,6 +16,35 @@ interface Status {
   redis: ServiceStatus;
 }
 
+function Skeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={`animate-skeleton rounded bg-[--color-card-border] ${className ?? ""}`}
+    />
+  );
+}
+
+function SkeletonCard() {
+  return (
+    <div className="bg-[--color-card] border border-[--color-card-border] rounded-xl p-5 mb-3">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-5 w-[5.5rem] rounded-full" />
+      </div>
+      <div className="mt-4 flex flex-col gap-2.5">
+        <div className="flex justify-between items-baseline">
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="h-3 w-28" />
+        </div>
+        <div className="flex justify-between items-baseline">
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="h-3 w-36" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StatusBadge({ connected }: { connected: boolean }) {
   return (
     <span
@@ -51,17 +80,13 @@ function DataRow({ label, value }: { label: string; value: string }) {
 function StatusCard({
   name,
   status,
-  className,
 }: {
   name: string;
   status: ServiceStatus | null;
-  className?: string;
 }) {
   if (!status) return null;
   return (
-    <div
-      className={`bg-[--color-card] border border-[--color-card-border] rounded-xl p-5 mb-3 transition-all duration-300 hover:border-[--color-card-border-hover] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)] ${className ?? ""}`}
-    >
+    <div className="bg-[--color-card] border border-[--color-card-border] rounded-xl p-5 mb-3 transition-all duration-300 hover:border-[--color-card-border-hover] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
       <div className="flex items-center justify-between">
         <span className="font-body text-[0.95rem] font-semibold tracking-tight">
           {name}
@@ -117,7 +142,7 @@ function App() {
     null,
   );
   const [status, setStatus] = useState<Status | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   async function fetchStatus() {
     setLoading(true);
@@ -137,11 +162,13 @@ function App() {
     fetchStatus();
   }, []);
 
+  const loaded = time !== null && status !== null;
+
   return (
     <div className="relative z-10 min-h-screen font-body text-[--color-body] antialiased flex justify-center p-12 px-4">
       <div className="max-w-xl w-full">
         {/* Header */}
-        <div className="animate-fade-up delay-1">
+        <div>
           <h1 className="font-display text-4xl font-bold tracking-tight mb-1">
             rw-monorepo
           </h1>
@@ -151,45 +178,54 @@ function App() {
         </div>
 
         {/* Backend */}
-        <div className="animate-fade-up delay-2 mb-8">
+        <div className="mb-8">
           <h2 className="font-mono text-[0.68rem] font-medium uppercase tracking-widest text-[--color-label] mb-3">
             Backend
           </h2>
-          <div className="bg-[--color-card] border border-[--color-card-border] rounded-xl p-5 transition-all duration-300 hover:border-[--color-card-border-hover] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
-            <div className="flex items-center justify-between">
-              <span className="font-body text-[0.95rem] font-semibold tracking-tight">
-                API Server
-              </span>
-              <StatusBadge connected={time !== null} />
-            </div>
-            {time && (
-              <div className="mt-4 flex flex-col gap-1.5">
-                <DataRow label="Date (server)" value={time.date} />
-                <DataRow label="Timestamp" value={String(time.timestamp)} />
+          {!loaded ? (
+            <SkeletonCard />
+          ) : (
+            <div className="animate-fade-up bg-[--color-card] border border-[--color-card-border] rounded-xl p-5 transition-all duration-300 hover:border-[--color-card-border-hover] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
+              <div className="flex items-center justify-between">
+                <span className="font-body text-[0.95rem] font-semibold tracking-tight">
+                  API Server
+                </span>
+                <StatusBadge connected={time !== null} />
               </div>
-            )}
-          </div>
+              {time && (
+                <div className="mt-4 flex flex-col gap-1.5">
+                  <DataRow label="Date (server)" value={time.date} />
+                  <DataRow label="Timestamp" value={String(time.timestamp)} />
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Databases */}
-        <div className="animate-fade-up delay-3 mb-8">
+        <div className="mb-8">
           <h2 className="font-mono text-[0.68rem] font-medium uppercase tracking-widest text-[--color-label] mb-3">
             Databases
           </h2>
-          <StatusCard
-            name="PostgreSQL"
-            status={status?.postgres ?? null}
-            className="animate-fade-up delay-4"
-          />
-          <StatusCard
-            name="Redis"
-            status={status?.redis ?? null}
-            className="animate-fade-up delay-5"
-          />
+          {!loaded ? (
+            <>
+              <SkeletonCard />
+              <SkeletonCard />
+            </>
+          ) : (
+            <>
+              <div className="animate-fade-up delay-1">
+                <StatusCard name="PostgreSQL" status={status?.postgres ?? null} />
+              </div>
+              <div className="animate-fade-up delay-2">
+                <StatusCard name="Redis" status={status?.redis ?? null} />
+              </div>
+            </>
+          )}
         </div>
 
         {/* Refresh */}
-        <div className="animate-fade-up delay-5">
+        <div>
           <button
             onClick={fetchStatus}
             disabled={loading}
