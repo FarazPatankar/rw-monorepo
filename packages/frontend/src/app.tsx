@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { formatDate } from "@rw/utils";
-import "./styles.css";
+import "./output.css";
 
 interface ServiceStatus {
   connected: boolean;

@@ -3,8 +3,9 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "bun --hot src/index.ts",
-    "start": "bun src/index.ts",
+    "build:css": "bunx tailwindcss -i src/styles.css -o src/output.css --minify",
+    "dev": "bun run build:css && bun --hot src/index.ts",
+    "start": "bun run build:css && bun src/index.ts",
     "test": "bun test"
   },
   "dependencies": {

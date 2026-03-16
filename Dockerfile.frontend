@@ -12,5 +12,7 @@ RUN bun install --frozen-lockfile
 COPY packages/frontend packages/frontend
 COPY packages/utils packages/utils
 
+RUN cd packages/frontend && bun run build:css
+
 EXPOSE 3000
 CMD ["bun", "packages/frontend/src/index.ts"]
