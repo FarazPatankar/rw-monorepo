@@ -1,9 +1,8 @@
 [build]
-builder = "railpack"
-buildCommand = "bun install"
+builder = "DOCKERFILE"
+dockerfilePath = "packages/frontend/Dockerfile"
 
 [deploy]
-startCommand = "bun src/index.ts"
 healthcheckPath = "/"
 healthcheckTimeout = 100
 restartPolicyType = "on_failure"

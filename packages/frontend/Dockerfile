@@ -1,0 +1,15 @@
+FROM oven/bun:1 AS base
+WORKDIR /app
+
+# Install dependencies
+COPY package.json bun.lock ./
+COPY packages/frontend/package.json packages/frontend/
+COPY packages/utils/package.json packages/utils/
+RUN bun install --frozen-lockfile
+
+# Copy source
+COPY packages/frontend packages/frontend
+COPY packages/utils packages/utils
+
+EXPOSE 3000
+CMD ["bun", "packages/frontend/src/index.ts"]
