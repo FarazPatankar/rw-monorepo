@@ -1,8 +1,8 @@
 {
   "name": "rw-monorepo",
-  "module": "index.ts",
-  "type": "module",
   "private": true,
+  "type": "module",
+  "workspaces": ["packages/*"],
   "devDependencies": {
     "@types/bun": "latest"
   },

@@ -1,0 +1,15 @@
+{
+  "name": "@rw/frontend",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot src/index.ts",
+    "start": "bun src/index.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@rw/utils": "workspace:*",
+    "react": "^19",
+    "react-dom": "^19"
+  }
+}
