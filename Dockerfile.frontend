@@ -1,8 +1,9 @@
 FROM oven/bun:1 AS base
 WORKDIR /app
 
-# Install dependencies
+# Install dependencies — copy all workspace package.jsons so lockfile is consistent
 COPY package.json bun.lock ./
+COPY packages/backend/package.json packages/backend/
 COPY packages/frontend/package.json packages/frontend/
 COPY packages/utils/package.json packages/utils/
 RUN bun install --frozen-lockfile
