@@ -21,8 +21,8 @@ function StatusBadge({ connected }: { connected: boolean }) {
     <span
       className={`inline-flex items-center gap-1.5 font-mono text-[0.65rem] font-medium uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${
         connected
-          ? "bg-emerald-950/60 text-emerald-400 border-emerald-800/60"
-          : "bg-red-950/60 text-red-400 border-red-800/60"
+          ? "bg-[#052e1f] text-[#34d399] border-[#065f46]"
+          : "bg-[#2a0a0a] text-[#f87171] border-[#7f1d1d]"
       }`}
     >
       <span
@@ -38,10 +38,12 @@ function StatusBadge({ connected }: { connected: boolean }) {
 function DataRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between items-baseline py-0.5">
-      <span className="font-mono text-[0.68rem] font-medium uppercase tracking-widest text-zinc-600">
+      <span className="font-mono text-[0.68rem] font-medium uppercase tracking-widest text-[--color-label]">
         {label}
       </span>
-      <span className="font-mono text-[0.82rem] text-zinc-400">{value}</span>
+      <span className="font-mono text-[0.82rem] text-[--color-muted]">
+        {value}
+      </span>
     </div>
   );
 }
@@ -58,7 +60,7 @@ function StatusCard({
   if (!status) return null;
   return (
     <div
-      className={`bg-zinc-900/70 border border-zinc-800/70 rounded-xl p-5 mb-3 transition-all duration-300 hover:border-zinc-700 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.5)] ${className ?? ""}`}
+      className={`bg-[--color-card] border border-[--color-card-border] rounded-xl p-5 mb-3 transition-all duration-300 hover:border-[--color-card-border-hover] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)] ${className ?? ""}`}
     >
       <div className="flex items-center justify-between">
         <span className="font-body text-[0.95rem] font-semibold tracking-tight">
@@ -83,7 +85,7 @@ function StatusCard({
         </div>
       ) : (
         <div className="mt-3">
-          <span className="text-sm text-red-400/90">{status.error}</span>
+          <span className="text-sm text-[#f87171]">{status.error}</span>
         </div>
       )}
     </div>
@@ -136,24 +138,24 @@ function App() {
   }, []);
 
   return (
-    <div className="relative z-10 min-h-screen font-body text-zinc-200 antialiased flex justify-center p-12 px-4">
+    <div className="relative z-10 min-h-screen font-body text-[--color-body] antialiased flex justify-center p-12 px-4">
       <div className="max-w-xl w-full">
         {/* Header */}
         <div className="animate-fade-up delay-1">
           <h1 className="font-display text-4xl font-bold tracking-tight mb-1">
             rw-monorepo
           </h1>
-          <p className="font-mono text-xs text-zinc-600 tracking-wide mb-8">
+          <p className="font-mono text-xs text-[--color-label] tracking-wide mb-8">
             {formatDate(new Date())}
           </p>
         </div>
 
         {/* Backend */}
         <div className="animate-fade-up delay-2 mb-8">
-          <h2 className="font-mono text-[0.68rem] font-medium uppercase tracking-widest text-zinc-600 mb-3">
+          <h2 className="font-mono text-[0.68rem] font-medium uppercase tracking-widest text-[--color-label] mb-3">
             Backend
           </h2>
-          <div className="bg-zinc-900/70 border border-zinc-800/70 rounded-xl p-5 transition-all duration-300 hover:border-zinc-700 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.5)]">
+          <div className="bg-[--color-card] border border-[--color-card-border] rounded-xl p-5 transition-all duration-300 hover:border-[--color-card-border-hover] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
             <div className="flex items-center justify-between">
               <span className="font-body text-[0.95rem] font-semibold tracking-tight">
                 API Server
@@ -171,7 +173,7 @@ function App() {
 
         {/* Databases */}
         <div className="animate-fade-up delay-3 mb-8">
-          <h2 className="font-mono text-[0.68rem] font-medium uppercase tracking-widest text-zinc-600 mb-3">
+          <h2 className="font-mono text-[0.68rem] font-medium uppercase tracking-widest text-[--color-label] mb-3">
             Databases
           </h2>
           <StatusCard
@@ -191,10 +193,10 @@ function App() {
           <button
             onClick={fetchStatus}
             disabled={loading}
-            className="inline-flex items-center gap-2 font-mono text-[0.8rem] font-medium tracking-wide px-5 py-2.5 rounded-lg border border-zinc-800 bg-zinc-900/50 text-zinc-300 cursor-pointer transition-all duration-200 hover:border-teal-500/50 hover:text-teal-400 hover:shadow-[0_0_12px_-4px_rgba(94,234,212,0.3)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-zinc-800 disabled:hover:text-zinc-300 disabled:hover:shadow-none"
+            className="inline-flex items-center gap-2 font-mono text-[0.8rem] font-medium tracking-wide px-5 py-2.5 rounded-lg border border-[--color-card-border] bg-[--color-card] text-[--color-muted] cursor-pointer transition-all duration-200 hover:border-[#2dd4bf80] hover:text-[#2dd4bf] hover:shadow-[0_0_12px_-4px_rgba(45,212,191,0.3)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[--color-card-border] disabled:hover:text-[--color-muted] disabled:hover:shadow-none"
           >
             <RefreshIcon spinning={loading} />
-            {loading ? "Refreshing…" : "Refresh"}
+            {loading ? "Refreshing\u2026" : "Refresh"}
           </button>
         </div>
       </div>

@@ -5,6 +5,22 @@
   --font-display: 'Bricolage Grotesque', serif;
   --font-body: 'DM Sans', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
+
+  --color-bg: #09090b;
+  --color-card: #131316;
+  --color-card-border: #1e1e24;
+  --color-card-border-hover: #2a2a33;
+  --color-label: #505060;
+  --color-muted: #9090a0;
+  --color-body: #d4d4dc;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-bg);
 }
 
 /* dot-grid atmosphere */
@@ -13,7 +29,7 @@ body::before {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background-image: radial-gradient(circle, #ffffff06 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
   background-size: 24px 24px;
   z-index: 0;
 }
