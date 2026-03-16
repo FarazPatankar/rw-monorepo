@@ -1,0 +1,8 @@
+[build]
+builder = "railpack"
+
+[deploy]
+startCommand = "bun packages/frontend/src/index.ts"
+healthcheckPath = "/"
+healthcheckTimeout = 100
+restartPolicyType = "on_failure"
