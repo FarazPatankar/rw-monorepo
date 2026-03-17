@@ -38,51 +38,48 @@ async function checkRedis() {
   }
 }
 
-async function checkExternalConnectivity(url: string, timeoutMs: number = 10000) {
-  const startTime = performance.now();
+async function testExternalConnectivity() {
+  const testUrl = "https://httpbin.org/get";
+  const startTime = Date.now();
   
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-    
-    const response = await fetch(url, {
-      signal: controller.signal,
+    const response = await fetch(testUrl, {
       method: "GET",
+      headers: {
+        "User-Agent": "rw-monorepo-connectivity-test",
+      },
     });
     
-    clearTimeout(timeoutId);
-    const endTime = performance.now();
-    const duration = Math.round(endTime - startTime);
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+    
+    if (!response.ok) {
+      return {
+        success: false,
+        error: `HTTP ${response.status}: ${response.statusText}`,
+        url: testUrl,
+        duration,
+      };
+    }
+    
+    const data = await response.json();
     
     return {
       success: true,
-      status: response.status,
-      statusText: response.statusText,
+      url: testUrl,
       duration,
-      url,
+      statusCode: response.status,
+      timestamp: new Date().toISOString(),
     };
   } catch (e: any) {
-    const endTime = performance.now();
-    const duration = Math.round(endTime - startTime);
-    
-    let errorMessage = e.message;
-    let errorType = "UNKNOWN_ERROR";
-    
-    if (e.name === "AbortError") {
-      errorMessage = `Request timed out after ${timeoutMs}ms`;
-      errorType = "TIMEOUT";
-    } else if (e.message.includes("fetch failed") || e.message.includes("ECONNREFUSED")) {
-      errorType = "NETWORK_ERROR";
-    } else if (e.message.includes("getaddrinfo")) {
-      errorType = "DNS_ERROR";
-    }
+    const endTime = Date.now();
+    const duration = endTime - startTime;
     
     return {
       success: false,
-      error: errorMessage,
-      errorType,
+      error: e.message,
+      url: testUrl,
       duration,
-      url,
     };
   }
 }
@@ -109,34 +106,9 @@ Bun.serve({
       return Response.json({ postgres, redis });
     },
 
-    "/api/egress-check": async (req) => {
-      const url = new URL(req.url);
-      const targetUrl = url.searchParams.get("url") || "https://httpbin.org/get";
-      const timeout = parseInt(url.searchParams.get("timeout") || "10000", 10);
-      
-      // Validate timeout
-      if (timeout < 100 || timeout > 30000) {
-        return Response.json(
-          { error: "Timeout must be between 100 and 30000 milliseconds" },
-          { status: 400 }
-        );
-      }
-      
-      // Validate URL
-      try {
-        new URL(targetUrl);
-      } catch {
-        return Response.json(
-          { error: "Invalid URL provided" },
-          { status: 400 }
-        );
-      }
-      
-      const result = await checkExternalConnectivity(targetUrl, timeout);
-      
-      return Response.json(result, {
-        status: result.success ? 200 : 503,
-      });
+    "/api/test-connectivity": async () => {
+      const result = await testExternalConnectivity();
+      return Response.json(result);
     },
   },
 
