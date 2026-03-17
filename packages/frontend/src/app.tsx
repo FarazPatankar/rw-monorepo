@@ -137,12 +137,155 @@ function RefreshIcon({ spinning }: { spinning: boolean }) {
   );
 }
 
+function RailwayIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M9 3v18" />
+      <path d="M15 3v18" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+function Modal({
+  isOpen,
+  onClose,
+  children,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+      onClick={onClose}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      
+      {/* Modal content */}
+      <div
+        className="relative z-10 w-full max-w-2xl max-h-[80vh] bg-[--color-card] border border-[--color-card-border] rounded-xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.8)] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function RailwayVariablesModal({
+  isOpen,
+  onClose,
+  variables,
+  loading,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  variables: Record<string, string> | null;
+  loading: boolean;
+}) {
+  return (
+    <Modal isOpen={isOpen} onClose={onClose}>
+      {/* Header */}
+      <div className="flex items-center justify-between p-6 border-b border-[--color-card-border]">
+        <div>
+          <h2 className="font-display text-2xl font-bold tracking-tight">
+            Railway Variables
+          </h2>
+          <p className="font-mono text-xs text-[--color-label] tracking-wide mt-1">
+            Environment variables prefixed with RAILWAY_*
+          </p>
+        </div>
+        <button
+          onClick={onClose}
+          className="p-2 rounded-lg border border-[--color-card-border] bg-[--color-bg] text-[--color-muted] cursor-pointer transition-all duration-200 hover:border-[--color-card-border-hover] hover:text-[--color-body]"
+          aria-label="Close modal"
+        >
+          <CloseIcon />
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="p-6 overflow-y-auto max-h-[calc(80vh-120px)]">
+        {loading ? (
+          <div className="flex flex-col gap-3">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex flex-col gap-2 p-4 bg-[--color-bg] border border-[--color-card-border] rounded-lg">
+                <Skeleton className="h-3 w-48" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            ))}
+          </div>
+        ) : variables && Object.keys(variables).length > 0 ? (
+          <div className="flex flex-col gap-3">
+            {Object.entries(variables).map(([key, value]) => (
+              <div
+                key={key}
+                className="p-4 bg-[--color-bg] border border-[--color-card-border] rounded-lg transition-all duration-200 hover:border-[--color-card-border-hover]"
+              >
+                <div className="font-mono text-[0.75rem] font-medium uppercase tracking-widest text-[--color-label] mb-2">
+                  {key}
+                </div>
+                <div className="font-mono text-[0.85rem] text-[--color-body] break-all">
+                  {value || <span className="text-[--color-muted] italic">empty</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="font-mono text-sm text-[--color-muted]">
+              No Railway environment variables found
+            </p>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
 function App() {
   const [time, setTime] = useState<{ date: string; timestamp: number } | null>(
     null,
   );
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
+  const [railwayVariables, setRailwayVariables] = useState<Record<string, string> | null>(null);
+  const [railwayModalOpen, setRailwayModalOpen] = useState(false);
+  const [railwayLoading, setRailwayLoading] = useState(false);
 
   async function fetchStatus() {
     setLoading(true);
@@ -155,6 +298,21 @@ function App() {
       setStatus(await statusRes.json());
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchRailwayVariables() {
+    setRailwayLoading(true);
+    setRailwayModalOpen(true);
+    try {
+      const res = await fetch("/api/railway-variables");
+      const data = await res.json();
+      setRailwayVariables(data);
+    } catch (error) {
+      console.error("Failed to fetch Railway variables:", error);
+      setRailwayVariables({});
+    } finally {
+      setRailwayLoading(false);
     }
   }
 
@@ -220,8 +378,8 @@ function App() {
           )}
         </div>
 
-        {/* Refresh */}
-        <div>
+        {/* Actions */}
+        <div className="flex gap-3">
           <button
             onClick={fetchStatus}
             disabled={loading}
@@ -230,8 +388,24 @@ function App() {
             <RefreshIcon spinning={loading} />
             {loading ? "Refreshing\u2026" : "Refresh"}
           </button>
+          
+          <button
+            onClick={fetchRailwayVariables}
+            className="inline-flex items-center gap-2 font-mono text-[0.8rem] font-medium tracking-wide px-5 py-2.5 rounded-lg border border-[--color-card-border] bg-[--color-card] text-[--color-muted] cursor-pointer transition-all duration-200 hover:border-[#a78bfa80] hover:text-[#a78bfa] hover:shadow-[0_0_12px_-4px_rgba(167,139,250,0.3)]"
+          >
+            <RailwayIcon />
+            Railway Variables
+          </button>
         </div>
       </div>
+
+      {/* Railway Variables Modal */}
+      <RailwayVariablesModal
+        isOpen={railwayModalOpen}
+        onClose={() => setRailwayModalOpen(false)}
+        variables={railwayVariables}
+        loading={railwayLoading}
+      />
     </div>
   );
 }
