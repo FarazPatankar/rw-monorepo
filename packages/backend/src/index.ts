@@ -73,8 +73,16 @@ Bun.serve({
     },
 
     "/api/railway-variables": () => {
-      const variables = getRailwayVariables();
-      return Response.json(variables);
+      try {
+        const variables = getRailwayVariables();
+        return Response.json(variables);
+      } catch (error) {
+        console.error("Error fetching Railway variables:", error);
+        return Response.json(
+          { error: "Failed to fetch Railway variables" },
+          { status: 500 }
+        );
+      }
     },
   },
 
