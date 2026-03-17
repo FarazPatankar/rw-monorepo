@@ -38,6 +38,18 @@ async function checkRedis() {
   }
 }
 
+function getRailwayVariables() {
+  const railwayVars: Record<string, string> = {};
+  
+  for (const [key, value] of Object.entries(process.env)) {
+    if (key.startsWith("RAILWAY_")) {
+      railwayVars[key] = value || "";
+    }
+  }
+  
+  return railwayVars;
+}
+
 Bun.serve({
   port,
   routes: {
@@ -58,6 +70,11 @@ Bun.serve({
         checkRedis(),
       ]);
       return Response.json({ postgres, redis });
+    },
+
+    "/api/railway-variables": () => {
+      const variables = getRailwayVariables();
+      return Response.json(variables);
     },
   },
 
