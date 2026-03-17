@@ -20,6 +20,23 @@ async function checkPostgres() {
   }
 }
 
+async function getPostgresTables() {
+  if (!pgUrl) return { error: "DATABASE_URL not set" };
+  try {
+    const sql = Bun.sql;
+    const rows = await sql`
+      SELECT tablename 
+      FROM pg_catalog.pg_tables 
+      WHERE schemaname != 'pg_catalog' 
+      AND schemaname != 'information_schema'
+      ORDER BY tablename
+    `;
+    return { tables: rows.map((row: any) => row.tablename) };
+  } catch (e: any) {
+    return { error: e.message };
+  }
+}
+
 async function checkRedis() {
   if (!redisUrl) return { connected: false, error: "REDIS_URL not set" };
   try {
@@ -35,27 +52,6 @@ async function checkRedis() {
     };
   } catch (e: any) {
     return { connected: false, error: e.message };
-  }
-}
-
-async function getPostgresTables() {
-  if (!pgUrl) {
-    return { success: false, error: "DATABASE_URL not set" };
-  }
-  try {
-    const sql = Bun.sql;
-    const tables = await sql`
-      SELECT table_name 
-      FROM information_schema.tables 
-      WHERE table_schema = 'public' 
-      ORDER BY table_name
-    `;
-    return {
-      success: true,
-      tables: tables.map((row: any) => row.table_name),
-    };
-  } catch (e: any) {
-    return { success: false, error: e.message };
   }
 }
 
