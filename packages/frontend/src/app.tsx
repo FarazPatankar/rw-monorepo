@@ -176,6 +176,26 @@ function CloseIcon() {
   );
 }
 
+function AlertIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
+    </svg>
+  );
+}
+
 function Modal({
   isOpen,
   onClose,
@@ -211,11 +231,13 @@ function RailwayVariablesModal({
   onClose,
   variables,
   loading,
+  error,
 }: {
   isOpen: boolean;
   onClose: () => void;
   variables: Record<string, string> | null;
   loading: boolean;
+  error: string | null;
 }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
@@ -248,6 +270,18 @@ function RailwayVariablesModal({
                 <Skeleton className="h-4 w-full" />
               </div>
             ))}
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-12 px-4">
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-[#2a0a0a] border border-[#7f1d1d] mb-4">
+              <AlertIcon />
+            </div>
+            <h3 className="font-display text-lg font-semibold text-[--color-body] mb-2">
+              Failed to Load Variables
+            </h3>
+            <p className="font-mono text-sm text-[--color-muted] text-center max-w-md">
+              {error}
+            </p>
           </div>
         ) : variables && Object.keys(variables).length > 0 ? (
           <div className="flex flex-col gap-3">
@@ -286,6 +320,7 @@ function App() {
   const [railwayVariables, setRailwayVariables] = useState<Record<string, string> | null>(null);
   const [railwayModalOpen, setRailwayModalOpen] = useState(false);
   const [railwayLoading, setRailwayLoading] = useState(false);
+  const [railwayError, setRailwayError] = useState<string | null>(null);
 
   async function fetchStatus() {
     setLoading(true);
@@ -304,13 +339,24 @@ function App() {
   async function fetchRailwayVariables() {
     setRailwayLoading(true);
     setRailwayModalOpen(true);
+    setRailwayError(null);
+    setRailwayVariables(null);
+    
     try {
       const res = await fetch("/api/railway-variables");
+      
+      if (!res.ok) {
+        throw new Error(`Failed to fetch Railway variables: ${res.status} ${res.statusText}`);
+      }
+      
       const data = await res.json();
       setRailwayVariables(data);
     } catch (error) {
       console.error("Failed to fetch Railway variables:", error);
-      setRailwayVariables({});
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "An unexpected error occurred while fetching Railway variables";
+      setRailwayError(errorMessage);
     } finally {
       setRailwayLoading(false);
     }
@@ -405,6 +451,7 @@ function App() {
         onClose={() => setRailwayModalOpen(false)}
         variables={railwayVariables}
         loading={railwayLoading}
+        error={railwayError}
       />
     </div>
   );
