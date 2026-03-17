@@ -16,6 +16,15 @@ interface Status {
   redis: ServiceStatus;
 }
 
+interface ConnectivityTestResult {
+  success: boolean;
+  url: string;
+  duration: number;
+  statusCode?: number;
+  timestamp?: string;
+  error?: string;
+}
+
 function Skeleton({ className }: { className?: string }) {
   return (
     <div
@@ -137,12 +146,85 @@ function RefreshIcon({ spinning }: { spinning: boolean }) {
   );
 }
 
+function NetworkIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+      <path d="M2 12h20" />
+    </svg>
+  );
+}
+
+function ConnectivityTestCard({
+  result,
+  loading,
+}: {
+  result: ConnectivityTestResult | null;
+  loading: boolean;
+}) {
+  if (loading) {
+    return <SkeletonCard />;
+  }
+
+  if (!result) {
+    return null;
+  }
+
+  return (
+    <div className="animate-fade-in bg-[--color-card] border border-[--color-card-border] rounded-xl p-5 mb-3 transition-all duration-300 hover:border-[--color-card-border-hover] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
+      <div className="flex items-center justify-between">
+        <span className="font-body text-[0.95rem] font-semibold tracking-tight">
+          External Connectivity
+        </span>
+        <StatusBadge connected={result.success} />
+      </div>
+      {result.success ? (
+        <div className="mt-4 flex flex-col gap-1.5">
+          <DataRow label="URL" value={result.url} />
+          <DataRow label="Duration" value={`${result.duration}ms`} />
+          {result.statusCode && (
+            <DataRow label="Status Code" value={String(result.statusCode)} />
+          )}
+          {result.timestamp && (
+            <DataRow
+              label="Tested at"
+              value={new Date(result.timestamp).toLocaleString()}
+            />
+          )}
+        </div>
+      ) : (
+        <div className="mt-4 flex flex-col gap-1.5">
+          <DataRow label="URL" value={result.url} />
+          <DataRow label="Duration" value={`${result.duration}ms`} />
+          <div className="mt-2">
+            <span className="text-sm text-[#f87171]">{result.error}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function App() {
   const [time, setTime] = useState<{ date: string; timestamp: number } | null>(
     null,
   );
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
+  const [connectivityResult, setConnectivityResult] =
+    useState<ConnectivityTestResult | null>(null);
+  const [testingConnectivity, setTestingConnectivity] = useState(false);
 
   async function fetchStatus() {
     setLoading(true);
@@ -155,6 +237,24 @@ function App() {
       setStatus(await statusRes.json());
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function testConnectivity() {
+    setTestingConnectivity(true);
+    try {
+      const response = await fetch("/api/test-connectivity");
+      const result = await response.json();
+      setConnectivityResult(result);
+    } catch (error: any) {
+      setConnectivityResult({
+        success: false,
+        url: "/api/test-connectivity",
+        duration: 0,
+        error: error.message || "Failed to test connectivity",
+      });
+    } finally {
+      setTestingConnectivity(false);
     }
   }
 
@@ -220,8 +320,19 @@ function App() {
           )}
         </div>
 
-        {/* Refresh */}
-        <div>
+        {/* External Connectivity */}
+        <div className="mb-8">
+          <h2 className="font-mono text-[0.68rem] font-medium uppercase tracking-widest text-[--color-label] mb-3">
+            External Connectivity
+          </h2>
+          <ConnectivityTestCard
+            result={connectivityResult}
+            loading={testingConnectivity}
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3">
           <button
             onClick={fetchStatus}
             disabled={loading}
@@ -229,6 +340,16 @@ function App() {
           >
             <RefreshIcon spinning={loading} />
             {loading ? "Refreshing\u2026" : "Refresh"}
+          </button>
+          <button
+            onClick={testConnectivity}
+            disabled={testingConnectivity}
+            className="inline-flex items-center gap-2 font-mono text-[0.8rem] font-medium tracking-wide px-5 py-2.5 rounded-lg border border-[--color-card-border] bg-[--color-card] text-[--color-muted] cursor-pointer transition-all duration-200 hover:border-[#a78bfa80] hover:text-[#a78bfa] hover:shadow-[0_0_12px_-4px_rgba(167,139,250,0.3)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[--color-card-border] disabled:hover:text-[--color-muted] disabled:hover:shadow-none"
+          >
+            <NetworkIcon />
+            {testingConnectivity
+              ? "Testing\u2026"
+              : "Test External Connectivity"}
           </button>
         </div>
       </div>
