@@ -16,6 +16,12 @@ interface Status {
   redis: ServiceStatus;
 }
 
+interface PostgresTablesResponse {
+  success: boolean;
+  tables?: string[];
+  error?: string;
+}
+
 function Skeleton({ className }: { className?: string }) {
   return (
     <div
@@ -73,6 +79,124 @@ function DataRow({ label, value }: { label: string; value: string }) {
       <span className="font-mono text-[0.82rem] text-[--color-muted]">
         {value}
       </span>
+    </div>
+  );
+}
+
+function DatabaseIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <ellipse cx="12" cy="5" rx="9" ry="3" />
+      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+      <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
+    </svg>
+  );
+}
+
+function PostgresCard({ status }: { status: ServiceStatus | null }) {
+  const [tables, setTables] = useState<string[] | null>(null);
+  const [loadingTables, setLoadingTables] = useState(false);
+  const [tablesError, setTablesError] = useState<string | null>(null);
+
+  async function fetchTables() {
+    setLoadingTables(true);
+    setTablesError(null);
+    try {
+      const response = await fetch("/api/postgres/tables");
+      const data: PostgresTablesResponse = await response.json();
+      if (data.success && data.tables) {
+        setTables(data.tables);
+      } else {
+        setTablesError(data.error || "Failed to fetch tables");
+      }
+    } catch (error: any) {
+      setTablesError(error.message || "Failed to fetch tables");
+    } finally {
+      setLoadingTables(false);
+    }
+  }
+
+  if (!status) return null;
+
+  return (
+    <div className="bg-[--color-card] border border-[--color-card-border] rounded-xl p-5 mb-3 transition-all duration-300 hover:border-[--color-card-border-hover] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
+      <div className="flex items-center justify-between">
+        <span className="font-body text-[0.95rem] font-semibold tracking-tight">
+          PostgreSQL
+        </span>
+        <StatusBadge connected={status.connected} />
+      </div>
+      {status.connected ? (
+        <div className="mt-4 flex flex-col gap-1.5">
+          {status.version && (
+            <DataRow label="Version" value={status.version} />
+          )}
+          {status.serverTime && (
+            <DataRow
+              label="Server time"
+              value={new Date(status.serverTime).toLocaleString()}
+            />
+          )}
+          {status.lastPing && (
+            <DataRow label="Last ping" value={status.lastPing} />
+          )}
+          
+          <div className="mt-3 pt-3 border-t border-[--color-card-border]">
+            <button
+              onClick={fetchTables}
+              disabled={loadingTables}
+              className="inline-flex items-center gap-2 font-mono text-[0.75rem] font-medium tracking-wide px-3 py-2 rounded-lg border border-[--color-card-border] bg-[--color-card] text-[--color-muted] cursor-pointer transition-all duration-200 hover:border-[#2dd4bf80] hover:text-[#2dd4bf] hover:shadow-[0_0_12px_-4px_rgba(45,212,191,0.3)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[--color-card-border] disabled:hover:text-[--color-muted] disabled:hover:shadow-none"
+            >
+              <DatabaseIcon />
+              {loadingTables ? "Loading…" : "Show Tables"}
+            </button>
+
+            {tables && tables.length > 0 && (
+              <div className="mt-3">
+                <div className="font-mono text-[0.68rem] font-medium uppercase tracking-widest text-[--color-label] mb-2">
+                  Tables ({tables.length})
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {tables.map((table) => (
+                    <span
+                      key={table}
+                      className="inline-flex items-center font-mono text-[0.7rem] px-2.5 py-1 rounded-md bg-[#0a2a2a] text-[#2dd4bf] border border-[#0d4d4d]"
+                    >
+                      {table}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {tables && tables.length === 0 && (
+              <div className="mt-3 text-sm text-[--color-muted]">
+                No tables found in the public schema
+              </div>
+            )}
+
+            {tablesError && (
+              <div className="mt-3 text-sm text-[#f87171]">
+                Error: {tablesError}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="mt-3">
+          <span className="text-sm text-[#f87171]">{status.error}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -214,7 +338,7 @@ function App() {
             </>
           ) : (
             <>
-              <StatusCard name="PostgreSQL" status={status?.postgres ?? null} />
+              <PostgresCard status={status?.postgres ?? null} />
               <StatusCard name="Redis" status={status?.redis ?? null} />
             </>
           )}

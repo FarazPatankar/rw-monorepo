@@ -38,6 +38,27 @@ async function checkRedis() {
   }
 }
 
+async function getPostgresTables() {
+  if (!pgUrl) {
+    return { success: false, error: "DATABASE_URL not set" };
+  }
+  try {
+    const sql = Bun.sql;
+    const tables = await sql`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      ORDER BY table_name
+    `;
+    return {
+      success: true,
+      tables: tables.map((row: any) => row.table_name),
+    };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
 Bun.serve({
   port,
   routes: {
@@ -58,6 +79,11 @@ Bun.serve({
         checkRedis(),
       ]);
       return Response.json({ postgres, redis });
+    },
+
+    "/api/postgres/tables": async () => {
+      const result = await getPostgresTables();
+      return Response.json(result);
     },
   },
 
