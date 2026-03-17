@@ -38,6 +38,53 @@ async function checkRedis() {
   }
 }
 
+async function checkExternalRequest(url: string, timeoutMs: number = 10000) {
+  const startTime = performance.now();
+  
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Railway-Egress-Check/1.0',
+      },
+    });
+    
+    clearTimeout(timeoutId);
+    const endTime = performance.now();
+    const duration = Math.round(endTime - startTime);
+    
+    return {
+      success: response.ok,
+      duration,
+      statusCode: response.status,
+      ...(response.ok ? {} : { error: `HTTP ${response.status}: ${response.statusText}` }),
+    };
+  } catch (e: any) {
+    const endTime = performance.now();
+    const duration = Math.round(endTime - startTime);
+    
+    let errorMessage = e.message;
+    if (e.name === 'AbortError') {
+      errorMessage = `Request timeout after ${timeoutMs}ms`;
+    } else if (e.code === 'ENOTFOUND') {
+      errorMessage = 'DNS lookup failed - host not found';
+    } else if (e.code === 'ECONNREFUSED') {
+      errorMessage = 'Connection refused';
+    } else if (e.code === 'ETIMEDOUT') {
+      errorMessage = 'Connection timeout';
+    }
+    
+    return {
+      success: false,
+      duration,
+      error: errorMessage,
+    };
+  }
+}
+
 Bun.serve({
   port,
   routes: {
@@ -58,6 +105,29 @@ Bun.serve({
         checkRedis(),
       ]);
       return Response.json({ postgres, redis });
+    },
+
+    "/api/egress-check": async (req) => {
+      const url = new URL(req.url);
+      const targetUrl = url.searchParams.get("url") || "https://www.google.com";
+      const timeout = parseInt(url.searchParams.get("timeout") || "10000", 10);
+      
+      // Validate URL
+      try {
+        new URL(targetUrl);
+      } catch {
+        return Response.json(
+          {
+            success: false,
+            duration: 0,
+            error: "Invalid URL provided",
+          },
+          { status: 400 }
+        );
+      }
+      
+      const result = await checkExternalRequest(targetUrl, timeout);
+      return Response.json(result);
     },
   },
 
