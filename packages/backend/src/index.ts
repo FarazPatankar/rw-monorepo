@@ -38,6 +38,55 @@ async function checkRedis() {
   }
 }
 
+async function checkExternalConnectivity(url: string, timeoutMs: number = 10000) {
+  const startTime = performance.now();
+  
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    const response = await fetch(url, {
+      signal: controller.signal,
+      method: "GET",
+    });
+    
+    clearTimeout(timeoutId);
+    const endTime = performance.now();
+    const duration = Math.round(endTime - startTime);
+    
+    return {
+      success: true,
+      status: response.status,
+      statusText: response.statusText,
+      duration,
+      url,
+    };
+  } catch (e: any) {
+    const endTime = performance.now();
+    const duration = Math.round(endTime - startTime);
+    
+    let errorMessage = e.message;
+    let errorType = "UNKNOWN_ERROR";
+    
+    if (e.name === "AbortError") {
+      errorMessage = `Request timed out after ${timeoutMs}ms`;
+      errorType = "TIMEOUT";
+    } else if (e.message.includes("fetch failed") || e.message.includes("ECONNREFUSED")) {
+      errorType = "NETWORK_ERROR";
+    } else if (e.message.includes("getaddrinfo")) {
+      errorType = "DNS_ERROR";
+    }
+    
+    return {
+      success: false,
+      error: errorMessage,
+      errorType,
+      duration,
+      url,
+    };
+  }
+}
+
 Bun.serve({
   port,
   routes: {
@@ -58,6 +107,36 @@ Bun.serve({
         checkRedis(),
       ]);
       return Response.json({ postgres, redis });
+    },
+
+    "/api/egress-check": async (req) => {
+      const url = new URL(req.url);
+      const targetUrl = url.searchParams.get("url") || "https://httpbin.org/get";
+      const timeout = parseInt(url.searchParams.get("timeout") || "10000", 10);
+      
+      // Validate timeout
+      if (timeout < 100 || timeout > 30000) {
+        return Response.json(
+          { error: "Timeout must be between 100 and 30000 milliseconds" },
+          { status: 400 }
+        );
+      }
+      
+      // Validate URL
+      try {
+        new URL(targetUrl);
+      } catch {
+        return Response.json(
+          { error: "Invalid URL provided" },
+          { status: 400 }
+        );
+      }
+      
+      const result = await checkExternalConnectivity(targetUrl, timeout);
+      
+      return Response.json(result, {
+        status: result.success ? 200 : 503,
+      });
     },
   },
 
