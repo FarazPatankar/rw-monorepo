@@ -38,49 +38,40 @@ async function checkRedis() {
   }
 }
 
-async function checkExternalRequest(url: string, timeoutMs: number = 10000) {
-  const startTime = performance.now();
-  
+async function testExternalConnection() {
+  const startTime = Date.now();
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-    
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Railway-Egress-Check/1.0',
-      },
+    // Test external connectivity by making a request to a reliable external service
+    const response = await fetch("https://httpbin.org/get", {
+      signal: AbortSignal.timeout(10000), // 10 second timeout
     });
     
-    clearTimeout(timeoutId);
-    const endTime = performance.now();
-    const duration = Math.round(endTime - startTime);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    const endTime = Date.now();
+    const duration = endTime - startTime;
     
     return {
-      success: response.ok,
+      success: true,
       duration,
+      timestamp: new Date().toISOString(),
+      endpoint: "https://httpbin.org/get",
       statusCode: response.status,
-      ...(response.ok ? {} : { error: `HTTP ${response.status}: ${response.statusText}` }),
+      responseSize: JSON.stringify(data).length,
     };
   } catch (e: any) {
-    const endTime = performance.now();
-    const duration = Math.round(endTime - startTime);
-    
-    let errorMessage = e.message;
-    if (e.name === 'AbortError') {
-      errorMessage = `Request timeout after ${timeoutMs}ms`;
-    } else if (e.code === 'ENOTFOUND') {
-      errorMessage = 'DNS lookup failed - host not found';
-    } else if (e.code === 'ECONNREFUSED') {
-      errorMessage = 'Connection refused';
-    } else if (e.code === 'ETIMEDOUT') {
-      errorMessage = 'Connection timeout';
-    }
+    const endTime = Date.now();
+    const duration = endTime - startTime;
     
     return {
       success: false,
       duration,
-      error: errorMessage,
+      timestamp: new Date().toISOString(),
+      endpoint: "https://httpbin.org/get",
+      error: e.message,
     };
   }
 }
@@ -107,26 +98,8 @@ Bun.serve({
       return Response.json({ postgres, redis });
     },
 
-    "/api/egress-check": async (req) => {
-      const url = new URL(req.url);
-      const targetUrl = url.searchParams.get("url") || "https://www.google.com";
-      const timeout = parseInt(url.searchParams.get("timeout") || "10000", 10);
-      
-      // Validate URL
-      try {
-        new URL(targetUrl);
-      } catch {
-        return Response.json(
-          {
-            success: false,
-            duration: 0,
-            error: "Invalid URL provided",
-          },
-          { status: 400 }
-        );
-      }
-      
-      const result = await checkExternalRequest(targetUrl, timeout);
+    "/api/test-external": async () => {
+      const result = await testExternalConnection();
       return Response.json(result);
     },
   },

@@ -16,6 +16,16 @@ interface Status {
   redis: ServiceStatus;
 }
 
+interface ExternalTestResult {
+  success: boolean;
+  duration: number;
+  timestamp: string;
+  endpoint: string;
+  statusCode?: number;
+  responseSize?: number;
+  error?: string;
+}
+
 function Skeleton({ className }: { className?: string }) {
   return (
     <div
@@ -137,12 +147,115 @@ function RefreshIcon({ spinning }: { spinning: boolean }) {
   );
 }
 
+function ExternalIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <polyline points="15 3 21 3 21 9" />
+      <line x1="10" y1="14" x2="21" y2="3" />
+    </svg>
+  );
+}
+
+function ExternalTestCard({
+  result,
+  loading,
+  error,
+}: {
+  result: ExternalTestResult | null;
+  loading: boolean;
+  error: string | null;
+}) {
+  if (loading) {
+    return <SkeletonCard />;
+  }
+
+  if (error) {
+    return (
+      <div className="bg-[--color-card] border border-[--color-card-border] rounded-xl p-5 mb-3 transition-all duration-300 hover:border-[--color-card-border-hover] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
+        <div className="flex items-center justify-between">
+          <span className="font-body text-[0.95rem] font-semibold tracking-tight">
+            External Connection Test
+          </span>
+          <StatusBadge connected={false} />
+        </div>
+        <div className="mt-3">
+          <span className="text-sm text-[#f87171]">{error}</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!result) {
+    return null;
+  }
+
+  return (
+    <div className="animate-fade-in bg-[--color-card] border border-[--color-card-border] rounded-xl p-5 mb-3 transition-all duration-300 hover:border-[--color-card-border-hover] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
+      <div className="flex items-center justify-between">
+        <span className="font-body text-[0.95rem] font-semibold tracking-tight">
+          External Connection Test
+        </span>
+        <StatusBadge connected={result.success} />
+      </div>
+      {result.success ? (
+        <div className="mt-4 flex flex-col gap-1.5">
+          <DataRow label="Endpoint" value={result.endpoint} />
+          <DataRow label="Duration" value={`${result.duration}ms`} />
+          {result.statusCode && (
+            <DataRow label="Status Code" value={String(result.statusCode)} />
+          )}
+          {result.responseSize && (
+            <DataRow
+              label="Response Size"
+              value={`${result.responseSize} bytes`}
+            />
+          )}
+          <DataRow
+            label="Tested At"
+            value={new Date(result.timestamp).toLocaleString()}
+          />
+        </div>
+      ) : (
+        <div className="mt-4 flex flex-col gap-1.5">
+          <DataRow label="Endpoint" value={result.endpoint} />
+          <DataRow label="Duration" value={`${result.duration}ms`} />
+          <DataRow
+            label="Tested At"
+            value={new Date(result.timestamp).toLocaleString()}
+          />
+          <div className="mt-2">
+            <span className="text-sm text-[#f87171]">{result.error}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function App() {
   const [time, setTime] = useState<{ date: string; timestamp: number } | null>(
     null,
   );
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
+  const [externalTest, setExternalTest] = useState<ExternalTestResult | null>(
+    null,
+  );
+  const [externalTestLoading, setExternalTestLoading] = useState(false);
+  const [externalTestError, setExternalTestError] = useState<string | null>(
+    null,
+  );
 
   async function fetchStatus() {
     setLoading(true);
@@ -155,6 +268,23 @@ function App() {
       setStatus(await statusRes.json());
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function testExternalConnection() {
+    setExternalTestLoading(true);
+    setExternalTestError(null);
+    try {
+      const response = await fetch("/api/test-external");
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const result = await response.json();
+      setExternalTest(result);
+    } catch (e: any) {
+      setExternalTestError(e.message);
+    } finally {
+      setExternalTestLoading(false);
     }
   }
 
@@ -220,8 +350,20 @@ function App() {
           )}
         </div>
 
-        {/* Refresh */}
-        <div>
+        {/* External Connectivity */}
+        <div className="mb-8">
+          <h2 className="font-mono text-[0.68rem] font-medium uppercase tracking-widest text-[--color-label] mb-3">
+            External Connectivity
+          </h2>
+          <ExternalTestCard
+            result={externalTest}
+            loading={externalTestLoading}
+            error={externalTestError}
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3">
           <button
             onClick={fetchStatus}
             disabled={loading}
@@ -229,6 +371,16 @@ function App() {
           >
             <RefreshIcon spinning={loading} />
             {loading ? "Refreshing\u2026" : "Refresh"}
+          </button>
+          <button
+            onClick={testExternalConnection}
+            disabled={externalTestLoading}
+            className="inline-flex items-center gap-2 font-mono text-[0.8rem] font-medium tracking-wide px-5 py-2.5 rounded-lg border border-[--color-card-border] bg-[--color-card] text-[--color-muted] cursor-pointer transition-all duration-200 hover:border-[#a78bfa80] hover:text-[#a78bfa] hover:shadow-[0_0_12px_-4px_rgba(167,139,250,0.3)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[--color-card-border] disabled:hover:text-[--color-muted] disabled:hover:shadow-none"
+          >
+            <ExternalIcon />
+            {externalTestLoading
+              ? "Testing\u2026"
+              : "Test External Connection"}
           </button>
         </div>
       </div>
