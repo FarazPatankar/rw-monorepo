@@ -195,7 +195,7 @@ function App() {
               {time && (
                 <div className="mt-4 flex flex-col gap-1.5">
                   <DataRow label="Date (server)" value={time.date} />
-                  <DataRow label="Timestamp" value={String(time.timestamp)} />
+                  <DataRow label="Timestamp" value={new Date(time.timestamp).toLocaleString()} />
                 </div>
               )}
             </div>
