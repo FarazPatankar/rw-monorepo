@@ -169,48 +169,71 @@ function NetworkIcon() {
 function ConnectivityTestCard({
   result,
   loading,
+  onTest,
 }: {
   result: ConnectivityTestResult | null;
   loading: boolean;
+  onTest: () => void;
 }) {
-  if (loading) {
-    return <SkeletonCard />;
-  }
-
-  if (!result) {
-    return null;
-  }
-
   return (
-    <div className="animate-fade-in bg-[--color-card] border border-[--color-card-border] rounded-xl p-5 mb-3 transition-all duration-300 hover:border-[--color-card-border-hover] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
-      <div className="flex items-center justify-between">
+    <div className="bg-[--color-card] border border-[--color-card-border] rounded-xl p-5 mb-3 transition-all duration-300 hover:border-[--color-card-border-hover] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
+      <div className="flex items-center justify-between mb-4">
         <span className="font-body text-[0.95rem] font-semibold tracking-tight">
           External Connectivity
         </span>
-        <StatusBadge connected={result.success} />
+        <button
+          onClick={onTest}
+          disabled={loading}
+          className="inline-flex items-center gap-2 font-mono text-[0.7rem] font-medium tracking-wide px-3 py-1.5 rounded-lg border border-[--color-card-border] bg-[--color-card] text-[--color-muted] cursor-pointer transition-all duration-200 hover:border-[#2dd4bf80] hover:text-[#2dd4bf] hover:shadow-[0_0_12px_-4px_rgba(45,212,191,0.3)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[--color-card-border] disabled:hover:text-[--color-muted] disabled:hover:shadow-none"
+        >
+          <NetworkIcon />
+          {loading ? "Testing…" : "Test"}
+        </button>
       </div>
-      {result.success ? (
-        <div className="mt-4 flex flex-col gap-1.5">
-          <DataRow label="URL" value={result.url} />
-          <DataRow label="Duration" value={`${result.duration}ms`} />
-          {result.statusCode && (
-            <DataRow label="Status Code" value={String(result.statusCode)} />
-          )}
-          {result.timestamp && (
-            <DataRow
-              label="Tested at"
-              value={new Date(result.timestamp).toLocaleString()}
-            />
-          )}
+      
+      {loading && (
+        <div className="flex flex-col gap-1.5">
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-3/4" />
         </div>
-      ) : (
-        <div className="mt-4 flex flex-col gap-1.5">
-          <DataRow label="URL" value={result.url} />
-          <DataRow label="Duration" value={`${result.duration}ms`} />
-          <div className="mt-2">
-            <span className="text-sm text-[#f87171]">{result.error}</span>
+      )}
+      
+      {!loading && result && (
+        <div className="animate-fade-in">
+          <div className="flex items-center gap-2 mb-3">
+            <StatusBadge connected={result.success} />
+            <span className="font-mono text-[0.7rem] text-[--color-muted]">
+              {result.duration}ms
+            </span>
+          </div>
+          
+          <div className="flex flex-col gap-1.5">
+            <DataRow label="URL" value={result.url} />
+            <DataRow label="Duration" value={`${result.duration}ms`} />
+            {result.statusCode && (
+              <DataRow label="Status Code" value={String(result.statusCode)} />
+            )}
+            {result.timestamp && (
+              <DataRow
+                label="Tested at"
+                value={new Date(result.timestamp).toLocaleString()}
+              />
+            )}
+            {result.error && (
+              <div className="mt-2 pt-2 border-t border-[--color-card-border]">
+                <span className="text-[0.82rem] text-[#f87171]">
+                  {result.error}
+                </span>
+              </div>
+            )}
           </div>
         </div>
+      )}
+      
+      {!loading && !result && (
+        <p className="text-[0.82rem] text-[--color-muted]">
+          Click "Test" to check external connectivity
+        </p>
       )}
     </div>
   );
@@ -224,7 +247,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [connectivityResult, setConnectivityResult] =
     useState<ConnectivityTestResult | null>(null);
-  const [testingConnectivity, setTestingConnectivity] = useState(false);
+  const [connectivityLoading, setConnectivityLoading] = useState(false);
 
   async function fetchStatus() {
     setLoading(true);
@@ -241,9 +264,12 @@ function App() {
   }
 
   async function testConnectivity() {
-    setTestingConnectivity(true);
+    setConnectivityLoading(true);
     try {
       const response = await fetch("/api/test-connectivity");
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       const result = await response.json();
       setConnectivityResult(result);
     } catch (error: any) {
@@ -254,7 +280,7 @@ function App() {
         error: error.message || "Failed to test connectivity",
       });
     } finally {
-      setTestingConnectivity(false);
+      setConnectivityLoading(false);
     }
   }
 
@@ -285,7 +311,7 @@ function App() {
           {!loaded ? (
             <SkeletonCard />
           ) : (
-            <div className="animate-fade-in bg-[--color-card] border border-[--color-card-border] rounded-xl p-5 transition-all duration-300 hover:border-[--color-card-border-hover] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
+            <div className="animate-fade-in bg-[--color-card] border border-[--color-card-border] rounded-xl p-5 mb-3 transition-all duration-300 hover:border-[--color-card-border-hover] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
               <div className="flex items-center justify-between">
                 <span className="font-body text-[0.95rem] font-semibold tracking-tight">
                   API Server
@@ -300,6 +326,18 @@ function App() {
               )}
             </div>
           )}
+        </div>
+
+        {/* External Connectivity */}
+        <div className="mb-8">
+          <h2 className="font-mono text-[0.68rem] font-medium uppercase tracking-widest text-[--color-label] mb-3">
+            External Connectivity
+          </h2>
+          <ConnectivityTestCard
+            result={connectivityResult}
+            loading={connectivityLoading}
+            onTest={testConnectivity}
+          />
         </div>
 
         {/* Databases */}
@@ -320,19 +358,8 @@ function App() {
           )}
         </div>
 
-        {/* External Connectivity */}
-        <div className="mb-8">
-          <h2 className="font-mono text-[0.68rem] font-medium uppercase tracking-widest text-[--color-label] mb-3">
-            External Connectivity
-          </h2>
-          <ConnectivityTestCard
-            result={connectivityResult}
-            loading={testingConnectivity}
-          />
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-3">
+        {/* Refresh */}
+        <div>
           <button
             onClick={fetchStatus}
             disabled={loading}
@@ -340,16 +367,6 @@ function App() {
           >
             <RefreshIcon spinning={loading} />
             {loading ? "Refreshing\u2026" : "Refresh"}
-          </button>
-          <button
-            onClick={testConnectivity}
-            disabled={testingConnectivity}
-            className="inline-flex items-center gap-2 font-mono text-[0.8rem] font-medium tracking-wide px-5 py-2.5 rounded-lg border border-[--color-card-border] bg-[--color-card] text-[--color-muted] cursor-pointer transition-all duration-200 hover:border-[#a78bfa80] hover:text-[#a78bfa] hover:shadow-[0_0_12px_-4px_rgba(167,139,250,0.3)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[--color-card-border] disabled:hover:text-[--color-muted] disabled:hover:shadow-none"
-          >
-            <NetworkIcon />
-            {testingConnectivity
-              ? "Testing\u2026"
-              : "Test External Connectivity"}
           </button>
         </div>
       </div>
