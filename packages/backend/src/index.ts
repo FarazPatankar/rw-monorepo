@@ -59,6 +59,38 @@ Bun.serve({
       ]);
       return Response.json({ postgres, redis });
     },
+
+    "/api/railway-variables": () => {
+      try {
+        // Get all environment variables
+        const env = process.env;
+        
+        // Filter variables that start with 'RAILWAY_'
+        const railwayVars: Record<string, string> = {};
+        
+        for (const [key, value] of Object.entries(env)) {
+          if (key.startsWith("RAILWAY_")) {
+            railwayVars[key] = value ?? "";
+          }
+        }
+        
+        return Response.json({
+          success: true,
+          count: Object.keys(railwayVars).length,
+          variables: railwayVars,
+        });
+      } catch (error: any) {
+        console.error("Error fetching Railway variables:", error);
+        return Response.json(
+          {
+            success: false,
+            error: "Failed to fetch Railway environment variables",
+            message: error?.message ?? "Unknown error",
+          },
+          { status: 500 }
+        );
+      }
+    },
   },
 
   fetch(req) {
